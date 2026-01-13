@@ -5,12 +5,13 @@ Express endpoint proxy yang menforward semua headers dan payload dengan efisiens
 ## Fitur
 
 - ✅ Support semua HTTP methods (GET, POST, PUT, DELETE, PATCH, dll)
-- ✅ Forward semua headers (kecuali yang tidak perlu)
+- ✅ Forward semua headers dari client (termasuk custom headers dan `host`)
 - ✅ Forward request body/payload
 - ✅ Streaming response untuk efisiensi (untuk large files)
 - ✅ Error handling yang baik
 - ✅ Timeout protection (30 detik)
 - ✅ Support berbagai content types (JSON, form-data, binary, dll)
+- ✅ Custom headers forwarding (User-Agent, Authorization, X-*, dll)
 
 ## Instalasi
 
@@ -94,11 +95,30 @@ curl -X POST "http://localhost:3000/?url=https://api.example.com/data" \
   -H "Authorization: Bearer token123" \
   -d '{"name": "John", "age": 30}'
 
+# POST request dengan custom headers (termasuk Host)
+curl -X POST "http://localhost:3000/?url=https://api.example.com/data" \
+  -H "Host: api.example.com" \
+  -H "User-Agent: MyApp/1.0" \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"key": "value"}'
+
 # POST request dengan encoded URL di path
 curl -X POST "http://localhost:3000/$(echo -n 'https://api.example.com/data' | jq -sRr @uri)" \
   -H "Content-Type: application/json" \
   -d '{"key": "value"}'
 ```
+
+### Custom Headers Forwarding
+
+Semua custom headers dari client akan di-forward ke target server, termasuk:
+- ✅ `Host` header
+- ✅ `User-Agent`
+- ✅ `Authorization`
+- ✅ `X-*` headers (semua custom headers)
+- ✅ Headers lainnya dari client
+
+📖 Lihat `CUSTOM_HEADERS.md` untuk detail lengkap tentang custom headers forwarding.
 
 ### Contoh dengan JavaScript/Node.js
 

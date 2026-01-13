@@ -43,12 +43,17 @@ app.use((req, res, next) => {
 
 /**
  * Helper function untuk membersihkan headers yang tidak perlu diforward
+ * Custom headers dari client (termasuk host) akan di-forward
  */
-function cleanHeaders(headers) {
+function cleanHeaders(headers, options = {}) {
   const cleaned = { ...headers };
+  const {
+    allowHost = true, // Allow forward host header dari client
+    allowCustomHeaders = true, // Allow semua custom headers
+  } = options;
 
   // Hapus headers yang tidak perlu diforward atau akan di-set ulang
-  delete cleaned.host;
+  // Headers ini akan di-set ulang oleh axios atau tidak relevan untuk target server
   delete cleaned.connection;
   delete cleaned["content-length"]; // Akan di-set ulang oleh axios berdasarkan body
   delete cleaned["transfer-encoding"];
@@ -56,7 +61,17 @@ function cleanHeaders(headers) {
   delete cleaned["proxy-connection"];
   delete cleaned["proxy-authenticate"];
   delete cleaned["proxy-authorization"];
-  delete cleaned["accept-encoding"]; // Biarkan axios handle compression
+
+  // Handle host header
+  // Jika allowHost = true, host dari client akan di-forward
+  // Jika false, host akan dihapus dan akan di-set dari target URL
+  if (!allowHost) {
+    delete cleaned.host;
+  }
+
+  // Semua custom headers lainnya (termasuk X-* headers) akan di-forward
+  // karena kita tidak menghapusnya dari cleaned object
+  // Headers seperti User-Agent, Authorization, Custom-Header, dll akan di-forward
 
   return cleaned;
 }
@@ -103,7 +118,21 @@ async function proxyHandler(req, res) {
     }
 
     // Siapkan headers untuk request
-    const headers = cleanHeaders(req.headers);
+    // Forward semua custom headers dari client termasuk host
+    const headers = cleanHeaders(req.headers, {
+      allowHost: true, // Allow forward host header dari client
+      allowCustomHeaders: true, // Allow semua custom headers
+    });
+
+    // Jika client tidak mengirim host header, set dari target URL
+    if (!headers.host) {
+      try {
+        const targetUrlObj = new URL(targetUrl);
+        headers.host = targetUrlObj.host;
+      } catch (e) {
+        // Ignore jika URL parsing gagal
+      }
+    }
 
     // Siapkan data untuk request
     // Forward raw body as-is untuk memastikan semua data (termasuk binary) ter-forward dengan benar

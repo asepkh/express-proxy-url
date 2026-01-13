@@ -21,6 +21,7 @@ Semua headers dari client akan di-forward ke target server, **kecuali `Host`**:
 **Host header TIDAK di-forward dari HTTP header** karena Vercel serverless tidak bisa menerima host header berbeda.
 
 Sebagai gantinya, host bisa di-set melalui:
+
 1. **Query parameter**: `?host=api.example.com`
 2. **Body payload (JSON)**: `{"host": "api.example.com", ...}`
 3. **Body payload (form-urlencoded)**: `host=api.example.com&...`

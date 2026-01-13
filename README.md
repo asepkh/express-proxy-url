@@ -11,7 +11,7 @@ Express endpoint proxy yang menforward semua headers dan payload dengan efisiens
 - ✅ Error handling yang baik
 - ✅ Timeout protection (30 detik)
 - ✅ Support berbagai content types (JSON, form-data, binary, dll)
-- ✅ Custom headers forwarding (User-Agent, Authorization, X-*, dll)
+- ✅ Custom headers forwarding (User-Agent, Authorization, X-\*, dll)
 
 ## Instalasi
 
@@ -116,12 +116,14 @@ curl -X POST "http://localhost:3000/$(echo -n 'https://api.example.com/data' | j
 ### Custom Headers Forwarding
 
 Semua custom headers dari client akan di-forward ke target server, **kecuali `Host`**:
+
 - ✅ `User-Agent`
 - ✅ `Authorization`
 - ✅ `X-*` headers (semua custom headers)
 - ✅ Headers lainnya dari client
 
 **Host Header**: Karena Vercel serverless tidak bisa menerima host header berbeda, host bisa di-set melalui:
+
 - Query parameter: `?host=api.example.com`
 - Body payload (JSON): `{"host": "api.example.com", ...}`
 - Body payload (form-urlencoded): `host=api.example.com&...`

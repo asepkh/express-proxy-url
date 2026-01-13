@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "routes": [
+    {
+      "src": "/keep-alive",
+      "dest": "/api/keep-alive.js"
+    },
+    {
+      "src": "/warm",
+      "dest": "/api/warm.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.js"
+    }
+  ],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30,
+      "memory": 1024
+    },
+    "api/keep-alive.js": {
+      "maxDuration": 10,
+      "memory": 256
+    },
+    "api/warm.js": {
+      "maxDuration": 10,
+      "memory": 512
+    }
+  },
+  "crons": [
+    {
+      "path": "/keep-alive",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/warm",
+      "schedule": "*/10 * * * *"
+    }
+  ]
+}

@@ -16,14 +16,17 @@
   ],
   "functions": {
     "api/index.js": {
+      "runtime": "bun@1.0.0",
       "maxDuration": 30,
       "memory": 1024
     },
     "api/keep-alive.js": {
+      "runtime": "bun@1.0.0",
       "maxDuration": 10,
       "memory": 256
     },
     "api/warm.js": {
+      "runtime": "bun@1.0.0",
       "maxDuration": 10,
       "memory": 512
     }

@@ -1,0 +1,13 @@
+# Bun configuration file
+# This file is optional but recommended for consistent behavior
+
+[install]
+# Auto-install peer dependencies
+auto = true
+
+# Production dependencies only
+production = false
+
+[test]
+# Test configuration (if needed)
+preload = []

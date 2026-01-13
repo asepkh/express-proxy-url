@@ -4,8 +4,10 @@
   "description": "Express proxy endpoint that forwards all headers and payload",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "bun server.js",
+    "dev": "bun --watch server.js",
+    "start:node": "node server.js",
+    "dev:node": "nodemon server.js"
   },
   "keywords": [
     "express",

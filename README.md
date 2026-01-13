@@ -14,13 +14,32 @@ Express endpoint proxy yang menforward semua headers dan payload dengan efisiens
 
 ## Instalasi
 
+### Dengan npm/yarn/pnpm (Node.js)
+
 ```bash
 npm install
 ```
 
-## Menjalankan Server
+### Dengan Bun (Recommended - Lebih Cepat)
 
 ```bash
+# Install Bun (jika belum)
+curl -fsSL https://bun.sh/install | bash
+
+# Install dependencies dengan Bun
+bun install
+```
+
+**Catatan:** Semua dependencies kompatibel dengan Bun. Bun dapat menjalankan package Node.js dengan sempurna.
+
+## Menjalankan Server
+
+### Dengan Bun (Recommended - Lebih Cepat)
+
+```bash
+# Install Bun (jika belum)
+curl -fsSL https://bun.sh/install | bash
+
 # Development mode (dengan auto-reload)
 npm run dev
 
@@ -28,7 +47,19 @@ npm run dev
 npm start
 ```
 
+### Dengan Node.js (Alternatif)
+
+```bash
+# Development mode
+npm run dev:node
+
+# Production mode
+npm run start:node
+```
+
 Server akan berjalan di port 3000 (atau sesuai `PORT` environment variable).
+
+**Catatan:** Vercel akan menggunakan Bun runtime secara otomatis berdasarkan konfigurasi di `vercel.json`.
 
 ## Penggunaan
 
@@ -145,21 +176,25 @@ Aplikasi ini bisa di-deploy ke berbagai platform. Pilih sesuai kebutuhan:
 
 **Vercel menggunakan serverless functions** - tidak ada opsi traditional server. Express app akan berjalan sebagai serverless function.
 
+**Runtime:** Bun 1.0.0 (lebih cepat dari Node.js, cold start lebih cepat)
+
 **Keuntungan:**
 
 - ✅ Auto-scaling
 - ✅ Gratis untuk tier tertentu
 - ✅ CDN global
 - ✅ Zero configuration
+- ✅ **Bun runtime** - lebih cepat, cold start lebih cepat, kompatibel dengan Node.js
 
 **Keterbatasan:**
 
 - ⚠️ Function timeout maksimal 30 detik (Pro: 60 detik)
-- ⚠️ Cold start pada request pertama (sudah dioptimasi dengan keep-alive)
+- ⚠️ Cold start pada request pertama (sudah dioptimasi dengan keep-alive + Bun)
 - ⚠️ Serverless-only (tidak bisa traditional server)
 
 **Optimasi Cold Start:**
 
+- ✅ **Bun runtime** - cold start lebih cepat dari Node.js
 - ✅ Keep-alive cron job setiap 5 menit
 - ✅ Warm-up function setiap 10 menit
 - ✅ Memory allocation 1024MB untuk main function

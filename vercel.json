@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "bunVersion": "1.x",
   "routes": [
     {
       "src": "/keep-alive",
@@ -16,17 +17,14 @@
   ],
   "functions": {
     "api/index.js": {
-      "runtime": "bun",
       "maxDuration": 30,
       "memory": 1024
     },
     "api/keep-alive.js": {
-      "runtime": "bun",
       "maxDuration": 10,
       "memory": 256
     },
     "api/warm.js": {
-      "runtime": "bun",
       "maxDuration": 10,
       "memory": 512
     }

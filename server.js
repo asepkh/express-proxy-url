@@ -43,14 +43,12 @@ app.use((req, res, next) => {
 
 /**
  * Helper function untuk membersihkan headers yang tidak perlu diforward
- * Custom headers dari client (termasuk host) akan di-forward
+ * Custom headers dari client akan di-forward (kecuali host)
+ * Host header akan di-handle dari body payload karena Vercel serverless
+ * tidak bisa menerima host header berbeda dari HTTP header
  */
-function cleanHeaders(headers, options = {}) {
+function cleanHeaders(headers) {
   const cleaned = { ...headers };
-  const {
-    allowHost = true, // Allow forward host header dari client
-    allowCustomHeaders = true, // Allow semua custom headers
-  } = options;
 
   // Hapus headers yang tidak perlu diforward atau akan di-set ulang
   // Headers ini akan di-set ulang oleh axios atau tidak relevan untuk target server
@@ -62,12 +60,9 @@ function cleanHeaders(headers, options = {}) {
   delete cleaned["proxy-authenticate"];
   delete cleaned["proxy-authorization"];
 
-  // Handle host header
-  // Jika allowHost = true, host dari client akan di-forward
-  // Jika false, host akan dihapus dan akan di-set dari target URL
-  if (!allowHost) {
-    delete cleaned.host;
-  }
+  // Hapus host header karena Vercel serverless tidak bisa menerima host berbeda
+  // Host akan di-handle dari body payload atau query parameter
+  delete cleaned.host;
 
   // Semua custom headers lainnya (termasuk X-* headers) akan di-forward
   // karena kita tidak menghapusnya dari cleaned object
@@ -118,14 +113,50 @@ async function proxyHandler(req, res) {
     }
 
     // Siapkan headers untuk request
-    // Forward semua custom headers dari client termasuk host
-    const headers = cleanHeaders(req.headers, {
-      allowHost: true, // Allow forward host header dari client
-      allowCustomHeaders: true, // Allow semua custom headers
-    });
+    // Forward semua custom headers dari client (kecuali host)
+    const headers = cleanHeaders(req.headers);
 
-    // Jika client tidak mengirim host header, set dari target URL
-    if (!headers.host) {
+    // Handle host header dari body payload atau query parameter
+    // Vercel serverless tidak bisa menerima host header berbeda dari HTTP header
+    let customHost = null;
+
+    // Cek dari query parameter
+    if (req.query.host) {
+      customHost = req.query.host;
+    }
+
+    // Cek dari body payload (jika JSON)
+    if (!customHost && req.rawBody) {
+      const contentType = req.headers["content-type"] || "";
+      if (contentType.includes("application/json")) {
+        try {
+          // Parse JSON dari raw body
+          const bodyJson = JSON.parse(req.rawBody.toString("utf8"));
+          if (bodyJson.host) {
+            customHost = bodyJson.host;
+          }
+        } catch (e) {
+          // Ignore jika parsing gagal
+        }
+      } else if (contentType.includes("application/x-www-form-urlencoded")) {
+        try {
+          // Parse form-urlencoded dari raw body
+          const bodyString = req.rawBody.toString("utf8");
+          const params = new URLSearchParams(bodyString);
+          if (params.has("host")) {
+            customHost = params.get("host");
+          }
+        } catch (e) {
+          // Ignore jika parsing gagal
+        }
+      }
+    }
+
+    // Set host header
+    if (customHost) {
+      headers.host = customHost;
+    } else {
+      // Default: set dari target URL
       try {
         const targetUrlObj = new URL(targetUrl);
         headers.host = targetUrlObj.host;

@@ -6,9 +6,8 @@ Proxy ini mendukung forwarding semua custom headers dari client ke target server
 
 ### ✅ Semua Custom Headers
 
-Semua headers dari client akan di-forward ke target server, termasuk:
+Semua headers dari client akan di-forward ke target server, **kecuali `Host`**:
 
-- ✅ `Host` - Header host dari client akan di-forward
 - ✅ `User-Agent` - User agent dari client
 - ✅ `Authorization` - Authentication headers
 - ✅ `X-*` - Semua custom headers dengan prefix X-
@@ -17,10 +16,21 @@ Semua headers dari client akan di-forward ke target server, termasuk:
 - ✅ `Accept` - Accept headers
 - ✅ Dan semua headers lainnya dari client
 
+### ⚠️ Host Header (Khusus)
+
+**Host header TIDAK di-forward dari HTTP header** karena Vercel serverless tidak bisa menerima host header berbeda.
+
+Sebagai gantinya, host bisa di-set melalui:
+1. **Query parameter**: `?host=api.example.com`
+2. **Body payload (JSON)**: `{"host": "api.example.com", ...}`
+3. **Body payload (form-urlencoded)**: `host=api.example.com&...`
+4. **Auto dari target URL**: Jika tidak di-set, akan diambil dari target URL
+
 ### ❌ Headers yang Dihapus
 
 Headers berikut akan dihapus karena tidak relevan atau akan di-set ulang:
 
+- ❌ `host` - Akan di-handle dari body payload atau query parameter
 - ❌ `connection` - HTTP connection header
 - ❌ `content-length` - Akan di-set ulang oleh axios berdasarkan body
 - ❌ `transfer-encoding` - Transfer encoding
@@ -31,16 +41,35 @@ Headers berikut akan dihapus karena tidak relevan atau akan di-set ulang:
 
 ## Contoh Penggunaan
 
-### Forward Host Header
+### Set Host dari Query Parameter
 
 ```bash
-curl -X POST "https://your-domain.vercel.app/?url=https://api.example.com/data" \
-  -H "Host: api.example.com" \
+curl -X POST "https://your-domain.vercel.app/?url=https://api.example.com/data&host=api.example.com" \
   -H "Content-Type: application/json" \
   -d '{"key": "value"}'
 ```
 
-Host header `api.example.com` akan di-forward ke target server.
+Host `api.example.com` akan di-set dari query parameter.
+
+### Set Host dari Body Payload (JSON)
+
+```bash
+curl -X POST "https://your-domain.vercel.app/?url=https://api.example.com/data" \
+  -H "Content-Type: application/json" \
+  -d '{"host": "api.example.com", "key": "value"}'
+```
+
+Host `api.example.com` akan di-extract dari JSON body.
+
+### Set Host dari Body Payload (Form-URLEncoded)
+
+```bash
+curl -X POST "https://your-domain.vercel.app/?url=https://api.example.com/data" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "host=api.example.com&key=value"
+```
+
+Host `api.example.com` akan di-extract dari form-urlencoded body.
 
 ### Forward Custom Headers
 
@@ -66,13 +95,12 @@ User-Agent dari client akan di-forward ke target server.
 
 ### Host Header
 
-1. **Jika client mengirim `Host` header:**
+Karena Vercel serverless tidak bisa menerima host header berbeda, host di-handle dengan urutan prioritas:
 
-   - Header akan di-forward ke target server
-   - Target server akan menerima host header dari client
-
-2. **Jika client tidak mengirim `Host` header:**
-   - Host akan di-set otomatis dari target URL
+1. **Query parameter `?host=...`** (prioritas tertinggi)
+2. **Body payload JSON `{"host": "..."}`**
+3. **Body payload form-urlencoded `host=...`**
+4. **Auto dari target URL** (fallback)
    - Contoh: Jika target URL adalah `https://api.example.com/data`, host akan di-set menjadi `api.example.com`
 
 ### Custom Headers
@@ -93,10 +121,14 @@ Semua custom headers dari client akan di-forward **as-is** ke target server tanp
 Untuk mengubah behavior, edit fungsi `cleanHeaders()` di `server.js`:
 
 ```javascript
-const headers = cleanHeaders(req.headers, {
-  allowHost: true, // Allow forward host header
-  allowCustomHeaders: true, // Allow semua custom headers
-});
+// Host header akan otomatis di-handle dari body payload atau query parameter
+const headers = cleanHeaders(req.headers);
+
+// Host akan di-extract dari:
+// 1. Query parameter: ?host=api.example.com
+// 2. Body JSON: {"host": "api.example.com"}
+// 3. Body form-urlencoded: host=api.example.com
+// 4. Auto dari target URL (fallback)
 ```
 
 ## Testing

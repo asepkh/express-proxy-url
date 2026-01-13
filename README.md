@@ -95,11 +95,15 @@ curl -X POST "http://localhost:3000/?url=https://api.example.com/data" \
   -H "Authorization: Bearer token123" \
   -d '{"name": "John", "age": 30}'
 
-# POST request dengan custom headers (termasuk Host)
+# POST request dengan custom headers dan host dari body payload
 curl -X POST "http://localhost:3000/?url=https://api.example.com/data" \
-  -H "Host: api.example.com" \
   -H "User-Agent: MyApp/1.0" \
   -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"host": "api.example.com", "key": "value"}'
+
+# Atau host dari query parameter
+curl -X POST "http://localhost:3000/?url=https://api.example.com/data&host=api.example.com" \
   -H "Content-Type: application/json" \
   -d '{"key": "value"}'
 
@@ -111,12 +115,17 @@ curl -X POST "http://localhost:3000/$(echo -n 'https://api.example.com/data' | j
 
 ### Custom Headers Forwarding
 
-Semua custom headers dari client akan di-forward ke target server, termasuk:
-- ✅ `Host` header
+Semua custom headers dari client akan di-forward ke target server, **kecuali `Host`**:
 - ✅ `User-Agent`
 - ✅ `Authorization`
 - ✅ `X-*` headers (semua custom headers)
 - ✅ Headers lainnya dari client
+
+**Host Header**: Karena Vercel serverless tidak bisa menerima host header berbeda, host bisa di-set melalui:
+- Query parameter: `?host=api.example.com`
+- Body payload (JSON): `{"host": "api.example.com", ...}`
+- Body payload (form-urlencoded): `host=api.example.com&...`
+- Auto dari target URL (fallback)
 
 📖 Lihat `CUSTOM_HEADERS.md` untuk detail lengkap tentang custom headers forwarding.
 

@@ -7,7 +7,15 @@ const axios = require("axios");
 const app = express();
 
 // Middleware untuk capture raw body untuk semua request
-// Kita akan forward body as-is ke target server untuk memastikan semua data ter-forward dengan benar
+// Di Vercel serverless, kita perlu handle body dengan cara khusus
+app.use(
+  express.raw({
+    type: "*/*",
+    limit: "10mb", // Limit untuk Vercel (default 4.5MB, kita set lebih besar)
+  })
+);
+
+// Middleware untuk extract raw body
 app.use((req, res, next) => {
   // Untuk methods tanpa body, langsung next
   if (
@@ -20,20 +28,17 @@ app.use((req, res, next) => {
     return next();
   }
 
-  const chunks = [];
+  // Di Vercel, body sudah di-parse oleh express.raw() sebagai Buffer
+  if (req.body && Buffer.isBuffer(req.body)) {
+    req.rawBody = req.body;
+  } else if (req.body) {
+    // Convert ke buffer jika bukan buffer
+    req.rawBody = Buffer.from(String(req.body));
+  } else {
+    req.rawBody = null;
+  }
 
-  req.on("data", (chunk) => {
-    chunks.push(chunk);
-  });
-
-  req.on("end", () => {
-    req.rawBody = chunks.length > 0 ? Buffer.concat(chunks) : null;
-    next();
-  });
-
-  req.on("error", (err) => {
-    next(err);
-  });
+  next();
 });
 
 /**
@@ -63,6 +68,15 @@ function cleanHeaders(headers) {
  */
 async function proxyHandler(req, res) {
   try {
+    // Log untuk debugging (akan muncul di Vercel logs)
+    console.log(`[${req.method}] ${req.path}`, {
+      hasBody: !!req.body,
+      hasRawBody: !!req.rawBody,
+      bodySize: req.rawBody ? req.rawBody.length : 0,
+      contentType: req.headers["content-type"],
+      query: req.query,
+    });
+
     // Ambil target URL dari path parameter atau query parameter
     let targetUrl = req.params.encodedUrl || req.query.url;
 
@@ -94,9 +108,22 @@ async function proxyHandler(req, res) {
     // Siapkan data untuk request
     // Forward raw body as-is untuk memastikan semua data (termasuk binary) ter-forward dengan benar
     let requestData = undefined;
-    if (req.rawBody && req.rawBody.length > 0) {
-      requestData = req.rawBody;
+
+    // Handle body - bisa dari rawBody atau body langsung
+    const bodyData =
+      req.rawBody || (req.body && Buffer.isBuffer(req.body) ? req.body : null);
+
+    if (bodyData && bodyData.length > 0) {
+      requestData = bodyData;
       // Set content-length header jika ada body
+      headers["content-length"] = requestData.length.toString();
+    } else if (
+      req.body &&
+      typeof req.body === "string" &&
+      req.body.length > 0
+    ) {
+      // Fallback: jika body adalah string, convert ke buffer
+      requestData = Buffer.from(req.body, "utf8");
       headers["content-length"] = requestData.length.toString();
     }
 
@@ -194,9 +221,24 @@ app.all("/", proxyHandler);
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Error:", err);
+
+  // Jangan kirim response jika sudah dikirim
+  if (res.headersSent) {
+    return next(err);
+  }
+
   res
     .status(500)
     .json({ error: "Internal server error", message: err.message });
+});
+
+// 404 handler untuk route yang tidak ditemukan
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Not found",
+    path: req.path,
+    method: req.method,
+  });
 });
 
 // Export app untuk Vercel serverless function

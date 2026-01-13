@@ -114,6 +114,18 @@ async function proxyHandler(req, res) {
       req.rawBody || (req.body && Buffer.isBuffer(req.body) ? req.body : null);
 
     if (bodyData && bodyData.length > 0) {
+      // Check body size limit (Vercel limit: 4.5MB Hobby, 50MB Pro)
+      const maxBodySize = 4.5 * 1024 * 1024; // 4.5MB default
+      if (bodyData.length > maxBodySize) {
+        return res.status(413).json({
+          error: "Request entity too large",
+          message: `Body size ${(bodyData.length / 1024 / 1024).toFixed(
+            2
+          )}MB exceeds limit`,
+          maxSize: "4.5MB (Hobby) or 50MB (Pro)",
+        });
+      }
+
       requestData = bodyData;
       // Set content-length header jika ada body
       headers["content-length"] = requestData.length.toString();
@@ -123,7 +135,17 @@ async function proxyHandler(req, res) {
       req.body.length > 0
     ) {
       // Fallback: jika body adalah string, convert ke buffer
-      requestData = Buffer.from(req.body, "utf8");
+      const bodyBuffer = Buffer.from(req.body, "utf8");
+      const maxBodySize = 4.5 * 1024 * 1024;
+      if (bodyBuffer.length > maxBodySize) {
+        return res.status(413).json({
+          error: "Request entity too large",
+          message: `Body size ${(bodyBuffer.length / 1024 / 1024).toFixed(
+            2
+          )}MB exceeds limit`,
+        });
+      }
+      requestData = bodyBuffer;
       headers["content-length"] = requestData.length.toString();
     }
 
